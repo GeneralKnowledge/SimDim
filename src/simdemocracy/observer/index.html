@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SimDemocracy — Commonwealth observer</title>
+  <style>
+    :root {
+      --paper: #f3efe4;
+      --card: #faf7f0;
+      --ink: #1c1915;
+      --muted: #5e574e;
+      --line: #d9d0c1;
+      --accent: #8c2f2a;
+      --accent-soft: #f3e2d8;
+      --good: #1f6b4a;
+      --warn: #8a5a12;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 15px/1.45 "Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: flex-end;
+      padding: 22px 28px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    h1 { font-size: 28px; font-weight: 600; margin: 0; letter-spacing: -0.03em; }
+    h2 { font-size: 20px; margin: 0 0 10px; }
+    h3 { font-size: 16px; margin: 0 0 8px; }
+    .kicker { color: var(--muted); font-family: "Segoe UI", sans-serif; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; }
+    nav { display: flex; gap: 6px; padding: 12px 28px 0; }
+    nav button, .lab button, .row {
+      font-family: "Segoe UI", sans-serif;
+    }
+    nav button {
+      background: transparent;
+      border: 1px solid transparent;
+      border-bottom: none;
+      padding: 8px 14px;
+      cursor: pointer;
+      color: var(--muted);
+    }
+    nav button.active { background: var(--card); border-color: var(--line); color: var(--ink); }
+    main { padding: 18px 28px 48px; }
+    .grid { display: grid; grid-template-columns: 1.4fr 0.8fr; gap: 16px; }
+    .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+    .card, .panel { background: var(--card); border: 1px solid var(--line); padding: 14px 16px; }
+    .stat { font-variant-numeric: tabular-nums; font-size: 26px; }
+    .label { color: var(--muted); font-family: "Segoe UI", sans-serif; font-size: 12px; }
+    .meter { height: 8px; background: #e7e0d4; margin-top: 6px; }
+    .meter i { display: block; height: 100%; background: var(--accent); }
+    .axis { display: grid; grid-template-columns: 140px 1fr 52px; gap: 8px; align-items: center; margin: 6px 0; font-size: 13px; }
+    .track { position: relative; height: 8px; background: linear-gradient(90deg, #d7ddd8, #e7e0d4 50%, #e7d2cf); }
+    .track b { position: absolute; top: -3px; width: 2px; height: 14px; background: var(--ink); }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-family: "Segoe UI", sans-serif; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+    .row { cursor: pointer; }
+    .row:hover, .row.selected { background: var(--accent-soft); }
+    .split { display: grid; grid-template-columns: 1fr 320px; gap: 16px; }
+    .factors { margin: 0; }
+    .factors div { display: grid; grid-template-columns: 1fr auto; gap: 8px; border-bottom: 1px solid var(--line); padding: 4px 0; font-size: 13px; }
+    .muted { color: var(--muted); }
+    .status { font-family: "Segoe UI", sans-serif; font-size: 13px; color: var(--muted); min-height: 1.2em; }
+    .lab { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    label { display: flex; flex-direction: column; gap: 4px; font-family: "Segoe UI", sans-serif; font-size: 12px; color: var(--muted); }
+    input, select { font: 14px "Segoe UI", sans-serif; padding: 6px 8px; border: 1px solid var(--line); background: white; color: var(--ink); }
+    .lab button, .toolbar button {
+      background: var(--ink); color: var(--paper); border: none; padding: 8px 14px; cursor: pointer;
+    }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .hidden { display: none; }
+    .party-list button {
+      display: block; width: 100%; text-align: left; background: transparent; border: none;
+      border-bottom: 1px solid var(--line); padding: 8px 4px; cursor: pointer; font: inherit; color: inherit;
+    }
+    .party-list button.active { background: var(--accent-soft); }
+    .tag { font-family: "Segoe UI", sans-serif; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+    @media (max-width: 900px) {
+      header, main, nav { padding-left: 14px; padding-right: 14px; }
+      .grid, .split, .cards, .lab { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="kicker">SimDemocracy</div>
+      <h1>Commonwealth observer</h1>
+    </div>
+    <div class="status" id="status">Loading a history…</div>
+  </header>
+  <nav>
+    <button type="button" data-view="commonwealth" class="active">Commonwealth</button>
+    <button type="button" data-view="parties">Parties</button>
+    <button type="button" data-view="timeline">Timeline</button>
+    <button type="button" data-view="laboratory">Laboratory</button>
+  </nav>
+  <main>
+    <section id="commonwealth"></section>
+    <section id="parties" class="hidden"></section>
+    <section id="timeline" class="hidden"></section>
+    <section id="laboratory" class="hidden"></section>
+  </main>
+  <script>
+    const state = { history: null, view: "commonwealth", partyId: null, eventId: null, majorOnly: true };
+
+    const views = ["commonwealth", "parties", "timeline", "laboratory"];
+    document.querySelectorAll("nav button").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.view = button.dataset.view;
+        document.querySelectorAll("nav button").forEach((item) => item.classList.toggle("active", item === button));
+        views.forEach((view) => document.getElementById(view).classList.toggle("hidden", view !== state.view));
+        render();
+      });
+    });
+
+    function el(tag, text, className) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined && text !== null) node.textContent = String(text);
+      return node;
+    }
+
+    function clear(node) {
+      while (node.firstChild) node.removeChild(node.firstChild);
+    }
+
+    function num(value, digits = 0) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return "—";
+      return number.toFixed(digits);
+    }
+
+    function events() {
+      return state.history ? state.history.events : [];
+    }
+
+    function byId(id) {
+      return events().find((event) => event.id === id) || null;
+    }
+
+    function majorEvents() {
+      return events().filter((event) => !state.majorOnly || event.significance === "major");
+    }
+
+    function lastElection() {
+      const held = events().filter((event) => event.type === "election_held");
+      return held.length ? held[held.length - 1] : null;
+    }
+
+    function poles() {
+      return (state.history && state.history.config && state.history.config.positive_pole) || {};
+    }
+
+    async function runSimulation(body) {
+      const status = document.getElementById("status");
+      status.textContent = "Running the Commonwealth…";
+      const response = await fetch("/api/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        status.textContent = "The run was rejected.";
+        const detail = await response.text();
+        throw new Error(detail);
+      }
+      state.history = await response.json();
+      state.partyId = null;
+      state.eventId = null;
+      const active = (state.history.final.parties || []).filter((party) => party.status === "active");
+      if (active.length) state.partyId = active[0].id;
+      status.textContent = `Seed ${state.history.seed} · ${state.history.ticks_run} weeks · version ${state.history.simulation_version}`;
+      render();
+    }
+
+    function render() {
+      if (!state.history) return;
+      renderCommonwealth();
+      renderParties();
+      renderTimeline();
+      renderLaboratory();
+    }
+
+    function renderCommonwealth() {
+      const root = document.getElementById("commonwealth");
+      clear(root);
+      const history = state.history;
+      const final = history.final;
+      const metrics = history.metrics;
+      const diversity = metrics.party_diversity;
+      const cards = el("div", null, "cards");
+      [
+        ["Citizens", final.citizens.length],
+        ["Active parties", diversity.active_at_end],
+        ["Governments", metrics.coalition_diversity.governments],
+        ["Broken commitments", metrics.alliance_stability.broken_commitments],
+      ].forEach(([label, value]) => {
+        const card = el("div", null, "card");
+        card.append(el("div", label, "label"), el("div", value, "stat"));
+        cards.append(card);
+      });
+      root.append(cards);
+
+      const grid = el("div", null, "grid");
+      const left = el("div");
+      const outcomes = el("div", null, "panel");
+      outcomes.append(el("h2", "Social outcomes"));
+      Object.entries(final.outcomes).forEach(([key, value]) => {
+        const row = el("div");
+        row.append(el("div", `${key.replaceAll("_", " ")} · ${num(value, 1)}`, "label"));
+        const meter = el("div", null, "meter");
+        const fill = document.createElement("i");
+        fill.style.width = `${Math.max(0, Math.min(100, Number(value)))}%`;
+        meter.append(fill);
+        row.append(meter);
+        outcomes.append(row);
+      });
+      const note = el("p", `Mean satisfaction ${num(final.mean_satisfaction, 2)} · mean engagement ${num(final.mean_engagement, 2)}. Positive policy poles are recorded in the run configuration; the bars above are social indicators, not party positions.`, "muted");
+      outcomes.append(note);
+      left.append(outcomes);
+
+      const election = el("div", null, "panel");
+      election.style.marginTop = "16px";
+      election.append(el("h2", "Latest election"));
+      const held = lastElection();
+      if (!held) {
+        election.append(el("p", "No election has been held.", "muted"));
+      } else {
+        election.append(el("p", held.summary));
+        const table = document.createElement("table");
+        const head = document.createElement("tr");
+        ["Party", "Votes", "Seats", "Vote share"].forEach((label) => head.append(el("th", label)));
+        table.append(head);
+        (held.details.results || []).forEach((row) => {
+          const tr = document.createElement("tr");
+          [row.name, row.votes, row.seats, `${num(Number(row.vote_share) * 100, 1)}%`].forEach((value) => tr.append(el("td", value)));
+          table.append(tr);
+        });
+        election.append(table);
+      }
+      left.append(election);
+      grid.append(left);
+
+      const right = el("div", null, "panel");
+      right.append(el("h2", "Government"));
+      const government = final.government;
+      if (!government) {
+        right.append(el("p", "No government is in office.", "muted"));
+      } else {
+        const names = government.party_ids.map((id) => partyName(id)).join(", ");
+        right.append(el("div", government.kind, "tag"));
+        right.append(el("p", names));
+        right.append(el("p", `Formed week ${government.formed_tick}. Formateur: ${partyName(government.formateur_party)}.`, "muted"));
+        if (government.support_ids && government.support_ids.length) {
+          right.append(el("p", `Confidence from ${government.support_ids.map(partyName).join(", ")}.`));
+        }
+      }
+      right.append(el("h3", "Recent major events"));
+      const list = document.createElement("div");
+      events().filter((event) => event.significance === "major").slice(-8).reverse().forEach((event) => {
+        const button = el("button", `Week ${event.tick} · ${event.type.replaceAll("_", " ")}`);
+        button.type = "button";
+        button.addEventListener("click", () => openEvent(event.id));
+        const wrap = el("div");
+        wrap.append(button, el("div", event.summary, "muted"));
+        list.append(wrap);
+      });
+      right.append(list);
+      const coalition = metrics.coalition_diversity;
+      right.append(el("p", `Signature gap of multi-party governments: ${num(coalition.mean_signature_gap, 0)} points on the three most disputed dimensions. Distant alliances: ${coalition.distant_alliances}.`, "muted"));
+      grid.append(right);
+      root.append(grid);
+    }
+
+    function partyName(id) {
+      const party = (state.history.final.parties || []).find((item) => item.id === id);
+      return party ? party.name : `Party ${id}`;
+    }
+
+    function renderParties() {
+      const root = document.getElementById("parties");
+      clear(root);
+      const split = el("div", null, "split");
+      const list = el("div", null, "panel party-list");
+      list.append(el("h2", "Organisations"));
+      const parties = [...state.history.final.parties].sort((a, b) => b.member_count - a.member_count || a.id - b.id);
+      parties.forEach((party) => {
+        const button = el("button", `${party.name} · ${party.member_count} members · ${party.seats} seats`);
+        button.type = "button";
+        button.classList.toggle("active", party.id === state.partyId);
+        button.addEventListener("click", () => {
+          state.partyId = party.id;
+          renderParties();
+        });
+        list.append(button, el("div", party.status, "label"));
+      });
+      split.append(list);
+      const dossier = el("div", null, "panel");
+      const party = parties.find((item) => item.id === state.partyId) || parties[0];
+      if (!party) {
+        dossier.append(el("p", "No parties formed."));
+      } else {
+        dossier.append(el("div", party.status, "tag"), el("h2", party.name));
+        dossier.append(el("p", `Founded week ${party.founded_tick} by ${party.founder_name}. Leader: ${party.leader_name}.`));
+        const lineage = [];
+        if (party.parent_id) lineage.push(`Split from ${partyName(party.parent_id)}.`);
+        if (party.merged_into) lineage.push(`Merged into ${partyName(party.merged_into)}.`);
+        if (party.dissolved_tick) lineage.push(`Ended week ${party.dissolved_tick}.`);
+        if (lineage.length) dossier.append(el("p", lineage.join(" ")));
+        dossier.append(el("p", `Trust ${num(party.trust_reputation, 2)} · competence ${num(party.competence, 2)} · promise-keeping ${num(party.promise_keeping, 2)}`, "muted"));
+        dossier.append(el("h3", "Platform"));
+        dossier.append(el("p", "Marker position is the official platform. +100 is the pole named in the run configuration.", "muted"));
+        Object.entries(party.platform).forEach(([dim, value]) => {
+          const row = el("div", null, "axis");
+          const pole = poles()[dim] ? ` · + ${poles()[dim]}` : "";
+          row.append(el("span", dim.replaceAll("_", " ") + pole));
+          const track = el("div", null, "track");
+          const mark = document.createElement("b");
+          mark.style.left = `${(Number(value) + 100) / 2}%`;
+          track.append(mark);
+          row.append(track, el("span", num(value, 0)));
+          dossier.append(row);
+        });
+        if (party.factions && party.factions.length) {
+          dossier.append(el("h3", "Factions"));
+          party.factions.forEach((faction) => {
+            dossier.append(el("p", `${faction.members} members on ${faction.issue.replaceAll("_", " ")} (${faction.direction > 0 ? "higher" : "lower"} than the platform), since week ${faction.formed_tick}.`));
+          });
+        }
+        dossier.append(el("h3", "Membership"));
+        const names = party.members.slice(0, 12).map((id) => {
+          const citizen = state.history.final.citizens.find((item) => item.id === id);
+          return citizen ? citizen.name : String(id);
+        });
+        dossier.append(el("p", names.join(", ") + (party.members.length > 12 ? ` and ${party.members.length - 12} others.` : ".")));
+      }
+      split.append(dossier);
+      root.append(split);
+    }
+
+    function renderTimeline() {
+      const root = document.getElementById("timeline");
+      clear(root);
+      const toolbar = el("div", null, "toolbar");
+      const toggle = el("label", "Major events only");
+      const box = document.createElement("input");
+      box.type = "checkbox";
+      box.checked = state.majorOnly;
+      box.addEventListener("change", () => {
+        state.majorOnly = box.checked;
+        renderTimeline();
+      });
+      toggle.prepend(box);
+      toolbar.append(el("h2", "Historical timeline"), toggle);
+      root.append(toolbar);
+      const split = el("div", null, "split");
+      const table = document.createElement("table");
+      const head = document.createElement("tr");
+      ["Week", "Event", "Record"].forEach((label) => head.append(el("th", label)));
+      table.append(head);
+      majorEvents().forEach((event) => {
+        const tr = document.createElement("tr");
+        tr.className = "row" + (event.id === state.eventId ? " selected" : "");
+        tr.append(el("td", event.tick), el("td", event.type.replaceAll("_", " ")), el("td", event.summary));
+        tr.addEventListener("click", () => {
+          state.eventId = event.id;
+          renderTimeline();
+        });
+        table.append(tr);
+      });
+      const wrap = el("div", null, "panel");
+      wrap.append(table);
+      split.append(wrap);
+      split.append(explainPanel());
+      root.append(split);
+    }
+
+    function explainPanel() {
+      const panel = el("div", null, "panel");
+      panel.append(el("h2", "Why did this happen?"));
+      const event = state.eventId ? byId(state.eventId) : null;
+      if (!event) {
+        panel.append(el("p", "Select an event. The explanation is the recorded drivers and the earlier events it cites.", "muted"));
+        return panel;
+      }
+      panel.append(el("div", `Week ${event.tick} · ${event.type.replaceAll("_", " ")}`, "tag"));
+      panel.append(el("p", event.summary));
+      panel.append(el("h3", "Drivers"));
+      const factors = el("div", null, "factors");
+      Object.entries(event.factors || {}).forEach(([key, value]) => {
+        if (value && typeof value === "object") return;
+        const row = el("div");
+        row.append(el("span", key.replaceAll("_", " ")), el("span", String(value)));
+        factors.append(row);
+      });
+      panel.append(factors);
+      panel.append(el("h3", "Caused by"));
+      const causes = event.causes || [];
+      if (!causes.length) panel.append(el("p", "No earlier event is cited. The drivers above are the recorded explanation.", "muted"));
+      causes.forEach((id) => {
+        const cause = byId(id);
+        const button = el("button", cause ? `Week ${cause.tick}: ${cause.summary}` : `Event ${id}`);
+        button.type = "button";
+        button.addEventListener("click", () => openEvent(id));
+        panel.append(button);
+      });
+      panel.append(el("h3", "Led to"));
+      const next = events().filter((item) => (item.causes || []).includes(event.id));
+      if (!next.length) panel.append(el("p", "No later event cites this one.", "muted"));
+      next.slice(0, 8).forEach((item) => {
+        const button = el("button", `Week ${item.tick}: ${item.summary}`);
+        button.type = "button";
+        button.addEventListener("click", () => openEvent(item.id));
+        panel.append(button);
+      });
+      return panel;
+    }
+
+    function openEvent(id) {
+      state.eventId = id;
+      state.view = "timeline";
+      document.querySelectorAll("nav button").forEach((button) => button.classList.toggle("active", button.dataset.view === "timeline"));
+      views.forEach((view) => document.getElementById(view).classList.toggle("hidden", view !== "timeline"));
+      renderTimeline();
+    }
+
+    function renderLaboratory() {
+      const root = document.getElementById("laboratory");
+      if (root.dataset.ready === "yes") return;
+      root.dataset.ready = "yes";
+      clear(root);
+      root.append(el("h2", "Laboratory"));
+      root.append(el("p", "Each run uses the engine rules and a seed. Changing a coefficient is an experiment, not a request for a particular story. The same seed and rules reproduce the same history.", "muted"));
+      const form = el("form", null, "lab");
+      const fields = [
+        ["seed", "Seed", 3],
+        ["ticks", "Weeks", 120],
+        ["population", "Citizens", 300],
+        ["party_formation_cost", "Formation cost", 0.58],
+        ["relationship_influence", "Relationship influence", 1],
+        ["ambition_scale", "Ambition scale", 1],
+        ["preference_adaptation", "Preference adaptation", 1],
+        ["electoral_threshold", "Electoral threshold", 0],
+      ];
+      fields.forEach(([name, label, value]) => {
+        const wrap = el("label", label);
+        const input = document.createElement("input");
+        input.name = name;
+        input.value = String(value);
+        wrap.append(input);
+        form.append(wrap);
+      });
+      const system = el("label", "Electoral system");
+      const select = document.createElement("select");
+      select.name = "electoral_system";
+      ["dhondt", "sainte_lague"].forEach((name) => {
+        const option = el("option", name === "dhondt" ? "D'Hondt" : "Sainte-Laguë");
+        option.value = name;
+        select.append(option);
+      });
+      system.append(select);
+      form.append(system);
+      const button = el("button", "Run experiment");
+      button.type = "submit";
+      form.append(button);
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const data = new FormData(form);
+        const body = {
+          seed: Number(data.get("seed")),
+          ticks: Number(data.get("ticks")),
+          population: Number(data.get("population")),
+          party_formation_cost: Number(data.get("party_formation_cost")),
+          relationship_influence: Number(data.get("relationship_influence")),
+          ambition_scale: Number(data.get("ambition_scale")),
+          preference_adaptation: Number(data.get("preference_adaptation")),
+          electoral_threshold: Number(data.get("electoral_threshold")),
+          electoral_system: data.get("electoral_system"),
+        };
+        try {
+          await runSimulation(body);
+        } catch (error) {
+          document.getElementById("status").textContent = "Run failed. Check the coefficients.";
+        }
+      });
+      root.append(form);
+      root.append(el("div", "", "status"));
+    }
+
+    runSimulation({ seed: 3, ticks: 120, population: 300 }).catch(() => {
+      document.getElementById("status").textContent = "Could not reach the simulation API.";
+    });
+  </script>
+</body>
+</html>
